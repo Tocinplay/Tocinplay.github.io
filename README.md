@@ -1,6 +1,6 @@
-[Tocin Blog](https://tocin.top)
+[Tocin Blog](https://tocinplay.github.io)
 ================================
 
 > I wish I could be more intelligent!
 
-![](http://github.com/tocinplay.top)
+![](http://github.com/tocinplay)
