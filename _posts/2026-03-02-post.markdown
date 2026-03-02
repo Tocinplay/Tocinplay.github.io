@@ -1,0 +1,97 @@
+---
+layout:     post
+title:      "小爱音箱对话接入与科技新闻订阅"
+date:       2026-03-02 17:31:07
+author:     "Tocin"
+tags:
+    - 小爱
+    - MiGPT-Next
+    - Obsidian
+---
+
+# 小爱音箱对话与科技新闻订阅功能技术文档
+
+## 一. 小爱音箱对话功能
+
+### 1. 功能概述
+通过配置和修改 MiGPT-Next 的设置，实现以下功能：
+1. 小爱音箱接收用户语音指令并调用深度学习模型生成回复。
+2. 自动播放生成的语音回复，模拟智能助手对话。
+
+### 2. 配置步骤
+
+#### (1) **修改关键词触发规则**
+- 文件路径：`/opt/migpt-next/apps/example/config.js`
+- 找到配置项 `callAIKeywords`，添加 "小林"，如下：
+```javascript
+callAIKeywords: ["请", "你", "小林"]
+```
+- 作用：允许用户通过说“小林”直接触发 AI 对话。
+
+#### (2) **解析语音处理逻辑**
+MiGPT-Next 默认依赖 DeepSeek，语音流程如下：
+1. 用户说“小林”唤醒音箱。
+2. 音箱将语音转录为文本，发送到 MiGPT-Next。
+3. MiGPT-Next 调用 AI 接口生成文本回复。
+4. AI 回复通过 TTS 播放。
+
+### 3. Node.js 脚本实现语音 TTS 播放
+以下是一个测试 TTS (文本转语音) 的示例代码：
+```javascript
+const { execSync } = require('child_process');
+
+function playTTS(text) {
+  const script = `/tmp/speak.js`;
+  const escapedText = text.replace(/\"/g, '\\\"');
+  const cmd = `sshpass -p 'ecoo1234' ssh root@hinas 'docker exec hopeful_galileo node ${script} "${escapedText}"'`;
+  try {
+    execSync(cmd, { stdio: 'inherit' });
+    console.log('播放成功');
+  } catch (e) {
+    console.error('TTS 播放失败:', e.message);
+  }
+}
+
+playTTS("测试语音播报。");
+```
+- **作用**：通过小爱音箱远程播报 TTS。
+- **调用**：`playTTS(\"要播报的内容\")`
+
+## 二. 科技新闻订阅功能
+
+### 1. 功能概述
+开发了一个脚本，定期抓取国内主流科技/AI新闻，挑选 AI 相关条目，并朗读摘要内容。
+
+### 2. 工作流程
+1. 配置 RSS 源：使用 `rss-parser` 中的中文流行科技源。
+2. 收集数据：获取最近24小时的新闻文章。
+3. 筛选 AI 相关：基于关键词（如“人工智能”、“大模型”）过滤。
+4. 调用 TTS：通过小爱音箱播报生成的新闻摘要。
+
+### 3. 核心代码解析
+```javascript
+const Parser = require('rss-parser');
+const parser = new Parser();
+
+// RSS 源列表
+const feeds = [
+    { url: 'https://36kr.com/feed', name: '36氪' },
+    { url: 'https://www.jiqizhixin.com/feed', name: '机器之心' },
+    { url: 'https://www.qbitai.com/feed', name: '量子位' }
+];
+
+// 获取并筛选新闻
+async function fetchNews() {
+    const allItems = [];
+    for (const feed of feeds) {
+        const feedData = await parser.parseURL(feed.url);
+        const recentItems = feedData.items;
+        recentItems.forEach(item => allItems.push(item));
+    }
+    console.log(`抓取到${allItems.length}个条目`);
+}
+
+fetchNews();
+```
+- **定时运行**：建议配置为 `cron` 自动执行以确保新闻更新。
+- **扩展**：可增加英文订阅源，或嵌入预训练模型对标题进行智能摘要翻译。
